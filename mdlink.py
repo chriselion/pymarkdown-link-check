@@ -1,8 +1,12 @@
+from gevent import monkey
+monkey.patch_all()
+
+import gevent
+
 import logging
 import time
 import os
 
-import gevent
 import requests
 import mistune
 
@@ -25,9 +29,9 @@ class LinkExtractor(mistune.Renderer):
 def main():
     start_time = time.time()
     links = extract_links(FILENAME)
-    # TODO configure parallel - not any faster on windows?!
-    res = check_links(FILENAME, links)
-    #res = check_links_parallel(FILENAME, links)
+    # TODO configure parallel
+    #res = check_links(FILENAME, links)
+    res = check_links_parallel(FILENAME, links)
     end_time = time.time()
     logging.info(f"elapsed time: {end_time-start_time}")
     return res
@@ -49,6 +53,7 @@ def check_link(base_file, link):
         return check_remote_link(link)
     else:
         return check_local_link(base_file, link)
+
 
 def check_links(base_file, links):
     # TODO gevent to parallelize
