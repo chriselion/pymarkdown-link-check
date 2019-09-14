@@ -2,6 +2,7 @@ import logging
 import time
 import os
 
+import gevent
 import requests
 import mistune
 
@@ -24,7 +25,9 @@ class LinkExtractor(mistune.Renderer):
 def main():
     start_time = time.time()
     links = extract_links(FILENAME)
+    # TODO configure parallel - not any faster on windows?!
     res = check_links(FILENAME, links)
+    #res = check_links_parallel(FILENAME, links)
     end_time = time.time()
     logging.info(f"elapsed time: {end_time-start_time}")
     return res
@@ -38,16 +41,37 @@ def extract_links(filename):
     with open(filename) as f:
         contents = f.read()
     markdown(contents)
+    # TODO dedupe links
     return link_finder.links
+
+def check_link(base_file, link):
+    if is_remote_link(link):
+        return check_remote_link(link)
+    else:
+        return check_local_link(base_file, link)
 
 def check_links(base_file, links):
     # TODO gevent to parallelize
     all_ok = True
     for l in links:
-        if is_remote_link(l):
-            is_ok = check_remote_link(l)
+        is_ok = check_link(base_file, l)
+        all_ok = all_ok and is_ok
+        if is_ok:
+            logging.info(f"ok: {l}")
         else:
-            is_ok = check_local_link(base_file, l)
+            logging.warning(f"BAD: {l}")
+    return all_ok
+
+
+def check_links_parallel(base_file, links):
+    links = set(links)
+    jobs = {}
+    for l in links:
+        jobs[l] = gevent.spawn(check_link, base_file, l)
+    gevent.joinall(jobs.values())
+    all_ok = True
+    for l, job in jobs.items():
+        is_ok = job.get()
         all_ok = all_ok and is_ok
 
         if is_ok:
@@ -55,6 +79,7 @@ def check_links(base_file, links):
         else:
             logging.warning(f"BAD: {l}")
     return all_ok
+
 
 def check_local_link(file, link):
     absfile = os.path.abspath(file)
