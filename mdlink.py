@@ -9,6 +9,7 @@ import os
 
 import requests
 import mistune
+import argparse
 
 # TODO logger object - I can't get the log level working with that for some reason.
 logging.getLogger().setLevel(logging.INFO)
@@ -26,15 +27,21 @@ class LinkExtractor(mistune.Renderer):
     def link(self, link, title, text):
         self.links.append(link)
 
-def main():
+
+def main(files_to_check, links_to_exclude):
+    links_to_exclude = set(links_to_exclude or [])
+    # TODO filter excluded links
     start_time = time.time()
-    links = extract_links(FILENAME)
-    # TODO configure parallel
-    #res = check_links(FILENAME, links)
-    res = check_links_parallel(FILENAME, links)
+    all_ok = True
+    for f in files_to_check:
+        links = extract_links(f)
+        # TODO configure parallel
+        #res = check_links(FILENAME, links)
+        res = check_links_parallel(f, links)
+        all_ok = all_ok and res
     end_time = time.time()
     logging.info(f"elapsed time: {end_time-start_time}")
-    return res
+    return all_ok
 
 
 def extract_links(filename):
@@ -90,8 +97,8 @@ def check_local_link(file, link):
     absfile = os.path.abspath(file)
     dir, _ = os.path.split(absfile)
     link_target = os.path.join(dir, link)
-    # TODO allow dirs too (e.g. to localized docs)
-    return os.path.isfile(link_target)
+    # TODO optimize with a single os.stat call?
+    return os.path.isfile(link_target) or os.path.isdir(link_target)
 
 def check_remote_link(link):
     try:
@@ -109,7 +116,18 @@ def check_remote_link(link):
 
 
 def is_remote_link(link: str):
+    # TODO use https://validators.readthedocs.io/en/latest/#module-validators.url
     return link.startswith("http://") or link.startswith("https://")
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    #parser.add_argument("files", action='append')
+    parser.add_argument("files", nargs = '+')
+    parser.add_argument("--exclude", action='append', help="Links to exclude from checking.")
+    args = parser.parse_args()
+
+    print(args)
+
+    res = main(args.files, args.exclude)
+    import sys
+    sys.exit(0 if res else 1)
