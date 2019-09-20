@@ -1,15 +1,14 @@
-from gevent import monkey
-monkey.patch_all()
+from gevent import monkey  # noqa
+monkey.patch_all()  # noqa
 
+import argparse
+import mistune
+import requests
+import os
+import time
+import logging
 import gevent
 
-import logging
-import time
-import os
-
-import requests
-import mistune
-import argparse
 
 # TODO logger object - I can't get the log level working with that for some reason.
 logging.getLogger().setLevel(logging.INFO)
@@ -17,6 +16,7 @@ logging.getLogger().setLevel(logging.INFO)
 FILENAME = "_test/README.md"
 
 sess = requests.session()
+
 
 class LinkExtractor(mistune.Renderer):
     def __init__(self):
@@ -54,6 +54,7 @@ def extract_links(filename):
     markdown(contents)
     # TODO dedupe links
     return link_finder.links
+
 
 def check_link(base_file, link):
     if is_remote_link(link):
@@ -100,6 +101,7 @@ def check_local_link(file, link):
     # TODO optimize with a single os.stat call?
     return os.path.isfile(link_target) or os.path.isdir(link_target)
 
+
 def check_remote_link(link):
     try:
         # TODO cache
@@ -119,11 +121,13 @@ def is_remote_link(link: str):
     # TODO use https://validators.readthedocs.io/en/latest/#module-validators.url
     return link.startswith("http://") or link.startswith("https://")
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     #parser.add_argument("files", action='append')
-    parser.add_argument("files", nargs = '+')
-    parser.add_argument("--exclude", action='append', help="Links to exclude from checking.")
+    parser.add_argument("files", nargs='+')
+    parser.add_argument("--exclude", action='append',
+                        help="Links to exclude from checking.")
     args = parser.parse_args()
 
     print(args)
