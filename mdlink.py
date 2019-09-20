@@ -133,4 +133,4 @@ def main() -> bool:
 
 
 if __name__ == '__main__':
-    exit(main())
+    exit(0 if main() else 1)
