@@ -36,7 +36,6 @@ def main(files_to_check, links_to_exclude):
     for f in files_to_check:
         links = extract_links(f)
         # TODO configure parallel
-        #res = check_links(FILENAME, links)
         res = check_links_parallel(f, links)
         all_ok = all_ok and res
     end_time = time.time()
@@ -124,7 +123,6 @@ def is_remote_link(link: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    #parser.add_argument("files", action='append')
     parser.add_argument("files", nargs='+')
     parser.add_argument("--exclude", action='append',
                         help="Links to exclude from checking.")
