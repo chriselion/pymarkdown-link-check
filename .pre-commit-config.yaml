@@ -17,3 +17,4 @@ repos:
     rev: v0.711
     hooks:
     -   id: mypy
+        args: [--ignore-missing-imports, --disallow-incomplete-defs]

@@ -9,6 +9,8 @@ import time
 import logging
 import gevent
 
+from typing import List, Iterable
+
 
 # TODO logger object - I can't get the log level working with that for some reason.
 logging.getLogger().setLevel(logging.INFO)
@@ -21,14 +23,14 @@ sess = requests.session()
 class LinkExtractor(mistune.Renderer):
     def __init__(self):
         super().__init__()
-        self.links = []
+        self.links: List[str] = []
 
     # TODO empty impl of other methods?
-    def link(self, link, title, text):
+    def link(self, link: str, title: str, text: str) -> None:
         self.links.append(link)
 
 
-def main(files_to_check, links_to_exclude):
+def main(files_to_check: List[str], links_to_exclude: Iterable[str]) -> bool:
     links_to_exclude = set(links_to_exclude or [])
     # TODO filter excluded links
     start_time = time.time()
@@ -43,7 +45,7 @@ def main(files_to_check, links_to_exclude):
     return all_ok
 
 
-def extract_links(filename):
+def extract_links(filename: str) -> List[str]:
     # TODO resuse mistune instance and reset between runs
     link_finder = LinkExtractor()
     markdown = mistune.Markdown(renderer=link_finder)
@@ -55,15 +57,14 @@ def extract_links(filename):
     return link_finder.links
 
 
-def check_link(base_file, link):
+def check_link(base_file: str, link: str) -> bool:
     if is_remote_link(link):
         return check_remote_link(link)
     else:
         return check_local_link(base_file, link)
 
 
-def check_links(base_file, links):
-    # TODO gevent to parallelize
+def check_links(base_file: str, links: List[str]) -> bool:
     all_ok = True
     for l in links:
         is_ok = check_link(base_file, l)
@@ -75,7 +76,7 @@ def check_links(base_file, links):
     return all_ok
 
 
-def check_links_parallel(base_file, links):
+def check_links_parallel(base_file: str, links: Iterable[str]) -> bool:
     links = set(links)
     jobs = {}
     for l in links:
@@ -93,7 +94,7 @@ def check_links_parallel(base_file, links):
     return all_ok
 
 
-def check_local_link(file, link):
+def check_local_link(file: str, link: str) -> bool:
     absfile = os.path.abspath(file)
     dir, _ = os.path.split(absfile)
     link_target = os.path.join(dir, link)
@@ -101,7 +102,7 @@ def check_local_link(file, link):
     return os.path.isfile(link_target) or os.path.isdir(link_target)
 
 
-def check_remote_link(link):
+def check_remote_link(link: str) -> bool:
     try:
         # TODO cache
         # TODO configurable timeout
@@ -116,7 +117,7 @@ def check_remote_link(link):
     return True
 
 
-def is_remote_link(link: str):
+def is_remote_link(link: str) -> bool:
     # TODO use https://validators.readthedocs.io/en/latest/#module-validators.url
     return link.startswith("http://") or link.startswith("https://")
 
