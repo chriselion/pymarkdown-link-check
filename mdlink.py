@@ -1,15 +1,16 @@
-from gevent import monkey
-monkey.patch_all()
+from gevent import monkey  # noqa
+monkey.patch_all()  # noqa
 
+import argparse
+import mistune
+import requests
+import os
+import time
+import logging
 import gevent
 
-import logging
-import time
-import os
+from typing import List, Iterable
 
-import requests
-import mistune
-import argparse
 
 # TODO logger object - I can't get the log level working with that for some reason.
 logging.getLogger().setLevel(logging.INFO)
@@ -18,17 +19,18 @@ FILENAME = "_test/README.md"
 
 sess = requests.session()
 
+
 class LinkExtractor(mistune.Renderer):
     def __init__(self):
         super().__init__()
-        self.links = []
+        self.links: List[str] = []
 
     # TODO empty impl of other methods?
-    def link(self, link, title, text):
+    def link(self, link: str, title: str, text: str) -> None:
         self.links.append(link)
 
 
-def main(files_to_check, links_to_exclude):
+def main(files_to_check: List[str], links_to_exclude: Iterable[str]) -> bool:
     links_to_exclude = set(links_to_exclude or [])
     # TODO filter excluded links
     start_time = time.time()
@@ -36,7 +38,6 @@ def main(files_to_check, links_to_exclude):
     for f in files_to_check:
         links = extract_links(f)
         # TODO configure parallel
-        #res = check_links(FILENAME, links)
         res = check_links_parallel(f, links)
         all_ok = all_ok and res
     end_time = time.time()
@@ -44,7 +45,7 @@ def main(files_to_check, links_to_exclude):
     return all_ok
 
 
-def extract_links(filename):
+def extract_links(filename: str) -> List[str]:
     # TODO resuse mistune instance and reset between runs
     link_finder = LinkExtractor()
     markdown = mistune.Markdown(renderer=link_finder)
@@ -55,15 +56,15 @@ def extract_links(filename):
     # TODO dedupe links
     return link_finder.links
 
-def check_link(base_file, link):
+
+def check_link(base_file: str, link: str) -> bool:
     if is_remote_link(link):
         return check_remote_link(link)
     else:
         return check_local_link(base_file, link)
 
 
-def check_links(base_file, links):
-    # TODO gevent to parallelize
+def check_links(base_file: str, links: List[str]) -> bool:
     all_ok = True
     for l in links:
         is_ok = check_link(base_file, l)
@@ -75,7 +76,7 @@ def check_links(base_file, links):
     return all_ok
 
 
-def check_links_parallel(base_file, links):
+def check_links_parallel(base_file: str, links: Iterable[str]) -> bool:
     links = set(links)
     jobs = {}
     for l in links:
@@ -93,14 +94,15 @@ def check_links_parallel(base_file, links):
     return all_ok
 
 
-def check_local_link(file, link):
+def check_local_link(file: str, link: str) -> bool:
     absfile = os.path.abspath(file)
     dir, _ = os.path.split(absfile)
     link_target = os.path.join(dir, link)
     # TODO optimize with a single os.stat call?
     return os.path.isfile(link_target) or os.path.isdir(link_target)
 
-def check_remote_link(link):
+
+def check_remote_link(link: str) -> bool:
     try:
         # TODO cache
         # TODO configurable timeout
@@ -115,15 +117,16 @@ def check_remote_link(link):
     return True
 
 
-def is_remote_link(link: str):
+def is_remote_link(link: str) -> bool:
     # TODO use https://validators.readthedocs.io/en/latest/#module-validators.url
     return link.startswith("http://") or link.startswith("https://")
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    #parser.add_argument("files", action='append')
-    parser.add_argument("files", nargs = '+')
-    parser.add_argument("--exclude", action='append', help="Links to exclude from checking.")
+    parser.add_argument("files", nargs='+')
+    parser.add_argument("--exclude", action='append',
+                        help="Links to exclude from checking.")
     args = parser.parse_args()
 
     print(args)
