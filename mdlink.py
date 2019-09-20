@@ -21,7 +21,7 @@ sess = requests.session()
 
 
 class LinkExtractor(mistune.Renderer):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.links: List[str] = []
 
@@ -30,7 +30,7 @@ class LinkExtractor(mistune.Renderer):
         self.links.append(link)
 
 
-def main(files_to_check: List[str], links_to_exclude: Iterable[str]) -> bool:
+def check_all_links(files_to_check: List[str], links_to_exclude: Iterable[str] = None) -> bool:
     links_to_exclude = set(links_to_exclude or [])
     # TODO filter excluded links
     start_time = time.time()
@@ -122,15 +122,15 @@ def is_remote_link(link: str) -> bool:
     return link.startswith("http://") or link.startswith("https://")
 
 
-if __name__ == "__main__":
+def main() -> bool:
     parser = argparse.ArgumentParser()
     parser.add_argument("files", nargs='+')
-    parser.add_argument("--exclude", action='append',
-                        help="Links to exclude from checking.")
+    parser.add_argument("--exclude", action='append', help="Links to exclude from checking.")
     args = parser.parse_args()
 
-    print(args)
+    res = check_all_links(args.files, args.exclude)
+    return res
 
-    res = main(args.files, args.exclude)
-    import sys
-    sys.exit(0 if res else 1)
+
+if __name__ == '__main__':
+    exit(0 if main() else 1)
