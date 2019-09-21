@@ -4,4 +4,3 @@
     entry: pymarkdown-link-check
     language: python
     types: [markdown]
-    exclude: ".*localized.*"
