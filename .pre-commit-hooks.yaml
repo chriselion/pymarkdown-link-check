@@ -1,0 +1,6 @@
+-   id: pymarkdown-link-check
+    name: Markdown Link Check
+    description: Check for invalid links in your markdown files.
+    entry: pymarkdown-link-check
+    language: python
+    types: [markdown]
